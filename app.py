@@ -4,9 +4,12 @@ from bson.json_util import dumps
 
 app = Flask(__name__)
 
+# username = 'flaskuser'
+# password = 'flaskuser'
+# clustername = 'newc'
+# database_name = 'db'
+
 # Configuration for MongoDB
-
-
 app.config["MONGO_URI"] = "mongodb+srv://flaskuser:flaskuser@newc.3ow5cor.mongodb.net/db?retryWrites=true&w=majority"
 mongo = PyMongo(app)
 
@@ -53,7 +56,7 @@ class Booking:
         else:
             return {
                 "status": "failure",
-                "message": "Booking failed. Not enough available seats."
+                "message": "Booking failed. No available seats."
             }
 
 class MovieTicketBookingSystem:
@@ -67,9 +70,7 @@ class MovieTicketBookingSystem:
         self.bookings = {}
         self.next_booking_id = 1
         
-
-    
-    
+            
     def get_movies(self):
         return [{"title": movie.title, "available_seats": movie.available_seats} for movie in self.movies]
 
@@ -91,12 +92,12 @@ class MovieTicketBookingSystem:
                 self.next_booking_id += 1
             return result
         else:
-            return {"status": "failure", "message": "Invalid movie selection."}
+            return {"message": "Invalid movie selection."}
 
 
     def update_user_seats(self, email, movie_name, new_number_of_seats):
         if new_number_of_seats <= 0:
-            return {"status": "failure", "message": "Number of seats must be greater than zero."}
+            return {"message": "Number of seats must be higher than zero."}
 
         updated_bookings = []
         for booking in self.bookings.values():
@@ -107,12 +108,12 @@ class MovieTicketBookingSystem:
                     booking.movie.book_seat(new_number_of_seats)
                     updated_bookings.append(booking.booking_id)
                 else:
-                    return {"status": "failure", "message": "Not enough available seats to update the booking."}
+                    return {"message": "Not enough available seats to update the booking."}
 
         if updated_bookings:
-            return {"status": "success", "message": "Bookings updated successfully.", "updated_bookings": updated_bookings}
+            return {"message": "Bookings updated successfully.", "updated_bookings": updated_bookings}
         else:
-            return {"status": "failure", "message": "User not found or no bookings for the specified movie."}
+            return {"message": "User not found or no bookings for the specified movie."}
 
         
     def delete_booking(self, email, movie_name, booking_id):
@@ -120,14 +121,14 @@ class MovieTicketBookingSystem:
             booking = self.bookings[booking_id]
             if booking.user.email == email and booking.movie.title == movie_name:
                 booking.movie.release_seat(booking.number_of_seats)
-                del self.bookings[booking_id]
+                del self.bookings[booking_id]          
                 # Delete booking from MongoDB
                 mongo.db.bookings.delete_one({"booking_id": booking_id, "user.email": email, "movie": movie_name})
-                return {"status": "success", "message": "Booking deleted successfully."}
+                return {"message": "Booking deleted successfully."}
             else:
-                return {"status": "failure", "message": "Email or movie name does not match the booking."}
+                return {"message": "Email or movie name does not match the booking."}
         else:
-            return {"status": "failure", "message": "Booking not found."}
+            return {"message": "Booking not found."}
 
 
 # Initialize the booking system
@@ -146,7 +147,7 @@ def book_ticket():
     number_of_seats = data.get('number_of_seats')
 
     if not all([name, email, movie_name, number_of_seats]):
-        return jsonify({"status": "failure", "message": "Missing required fields"}), 400
+        return jsonify({"message": "Missing required fields"}), 400
 
     user = User(name, email)
     result = system.book_ticket(user, movie_name, number_of_seats)
@@ -161,7 +162,7 @@ def update_user_seats():
     new_number_of_seats = data.get('new_number_of_seats')
 
     if not all([email, movie_name, new_number_of_seats]):
-        return jsonify({"status": "failure", "message": "Missing required fields"}), 400
+        return jsonify({"message": "Missing required fields"}), 400
 
     result = system.update_user_seats(email, movie_name, new_number_of_seats)
     return jsonify(result)
@@ -175,7 +176,7 @@ def delete_booking():
     booking_id = data.get('booking_id')
 
     if not all([email, movie_name, booking_id]):
-        return jsonify({"status": "failure", "message": "Missing required fields"}), 400
+        return jsonify({"message": "Missing required fields"}), 400
 
     result = system.delete_booking(email, movie_name, booking_id)
     return jsonify(result)
